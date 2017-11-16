@@ -45,7 +45,7 @@ def train_rnn(df,date_predict,epochs=100):
     date_limit = (date_p - datetime.timedelta(days=1)).strftime('%Y-%m-%d')
     date_start = (date_p - datetime.timedelta(days=42)).strftime('%Y-%m-%d')
     sk = df[:date_limit].copy()
-    sk = sk_df.drop(['TRADEDATE', 'RTENERGY'], axis=1)
+    sk = sk.drop(['TRADEDATE', 'RTENERGY'], axis=1)
     sk.hourofday = sk.hourofday.dt.seconds/3600
     sk = sk[date_start:]
     y = sk.pop('DAENERGY').values
@@ -171,7 +171,7 @@ if __name__ == '__main__':
     df = clean_data(df)
     df = create_index(df)
     model, X, y = train_rnn(df,'2017-10-01',epochs=20)
-    results , RMSE = predict_next_day(df,'2017-10-01', 'best_model.hdf5')
-    y_true = scaler.inverse_transform(results.DAENERGY.values.reshape(1,-1))[0]
-    y_pred = scaler.inverse_transform(results.forecast.values.reshape(1,-1))[0]
-    print(MAPE(y_true, y_pred))
+    #results , RMSE = predict_next_day(df,'2017-10-01', 'best_model.hdf5')
+    #y_true = scaler.inverse_transform(results.DAENERGY.values.reshape(1,-1))[0]
+    #y_pred = scaler.inverse_transform(results.forecast.values.reshape(1,-1))[0]
+    #print(MAPE(y_true, y_pred))
