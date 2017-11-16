@@ -20,7 +20,7 @@ def data_lstm(X,y,lookback=1):
 
 def create_rnn():
     model = Sequential()
-    model.add(LSTM(return_sequences=True, input_shape=(169,141), units=64))
+    model.add(LSTM(return_sequences=True, input_shape=(169,139), units=64))
     model.add(Dropout(0.2))
 
     model.add(LSTM(
@@ -47,6 +47,7 @@ def train_rnn(df,date_predict,epochs=100):
     sk = df[:date_limit].copy()
     print(sk.shape)
     sk = sk.drop(['TRADEDATE', 'RTENERGY'], axis=1)
+
     sk.hourofday = sk.hourofday.dt.seconds/3600
     sk = sk[date_start:]
     y = sk.pop('DAENERGY').values
