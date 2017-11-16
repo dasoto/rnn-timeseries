@@ -9,22 +9,26 @@ import datetime
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 
-def train_rnn(df,date_predict):
+def train_rnn(df,date_predict,epochs=100):
     #Preparting data to Train
     #print('Preparing data to Train')
     date_p = datetime.datetime.strptime(date_predict, "%Y-%m-%d").date()
     date_limit = (date_p - datetime.timedelta(days=1)).strftime('%Y-%m-%d')
+    date_start = (date_p - datetime.timedelta(days=42)).strftime('%Y-%m-%d')
     sk_df = df[:date_limit].copy()
     sk = sk_df.drop(['TRADEDATE', 'RTENERGY'], axis=1)
     sk.hourofday = sk.hourofday.dt.seconds/3600
     sk = create_features(sk)
     sk = sk.dropna()
+    sk = sk[date_start:]
     y = sk.pop('DAENERGY').values
     X = sk[['Ph-1', 'Ph-2', 'Ph-3', 'Ph-24', 'Ph-25', 'Ph-48', 'Ph-49',
                 'Ph-72','Ph-73', 'Ph-96', 'Ph-97', 'Ph-120', 'Ph-121', 'Ph-144',
                 'Ph-145', 'Ph-168']].values
 
-    model = create_simple_rnn()
+    #model = create_simple_rnn()
+    model = create_rnn()
+
     X = X.reshape(X.shape[0],X.shape[1],1)
     filepath="weights-improvement-{epoch:02d}-{val_loss:.2f}.hdf5"
     filepath="best_model.hdf5"
@@ -36,7 +40,7 @@ def train_rnn(df,date_predict):
         X,
         y,
         batch_size=1,  #168
-        epochs=1200,
+        epochs=epochs,
         validation_split=0.05, callbacks=[early_stop, checkpoint])
 
 
@@ -178,12 +182,17 @@ def create_simple_rnn():
     print('compilation time : {}'.format(time.time() - start))
     return model
 
+def MAPE(y_true, y_pred):
+    return 1/len(y_true)*(np.abs((y_true-y_pred))/y_true*100).sum()
 
 if __name__ == '__main__':
     df = pivot_data('data/Data.txt')
-    scaler = MinMaxScaler().fit(df.DAENERGY)
+    scaler = MinMaxScaler(feature_range=(-1,1)).fit(df.DAENERGY)
     df.DAENERGY = scaler.transform(df.DAENERGY)
     df = clean_data(df)
     df = create_index(df)
-    model, X, y = train_rnn(df,'2017-10-01')
+    model, X, y = train_rnn(df,'2017-10-01',epochs=20)
     results , RMSE = predict_next_day(df,'2017-10-01', 'best_model.hdf5')
+    y_true = scaler.inverse_transform(results.DAENERGY.values.reshape(1,-1))[0]
+    y_pred = scaler.inverse_transform(results.forecast.values.reshape(1,-1))[0]
+    print(MAPE(y_true, y_pred))
