@@ -166,8 +166,8 @@ def MAPE(y_true, y_pred):
 
 if __name__ == '__main__':
     df = pivot_data('data/Data.txt')
-    scaler = MinMaxScaler(feature_range=(-1,1)).fit(df.DAENERGY)
-    df.DAENERGY = scaler.transform(df.DAENERGY)
+    #scaler = MinMaxScaler(feature_range=(-1,1)).fit(df.DAENERGY)
+    #df.DAENERGY = scaler.transform(df.DAENERGY)
     df = clean_data(df)
     df = create_index(df)
     model, X, y = train_rnn(df,'2017-10-01',epochs=20)
