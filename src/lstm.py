@@ -48,7 +48,7 @@ def train_rnn(df,date_predict,epochs=100):
     print(sk.shape)
     sk = sk.drop(['TRADEDATE', 'RTENERGY'], axis=1)
 
-    sk.hourofday = sk.hourofday.dt.seconds/3600
+    #sk.hourofday = sk.hourofday.dt.seconds/3600
     sk = sk[date_start:]
     y = sk.pop('DAENERGY').values
     X = sk.values[:,1:]
@@ -78,62 +78,47 @@ def predict_next_day(df,date_predict, filename):
     model = load_model(filename)
     date_p = datetime.datetime.strptime(date_predict, "%Y-%m-%d").date()
     date_limit = (date_p - datetime.timedelta(days=1)).strftime('%Y-%m-%d')
+    date_start = (date_p - datetime.timedelta(days=42)).strftime('%Y-%m-%d')
 
-    df = df.copy()
-    df_new = create_features(df)
-    df_new = df_new.dropna()
-    df_new = df_new[['Ph-1', 'Ph-2', 'Ph-3', 'Ph-24', 'Ph-25', 'Ph-48', 'Ph-49',
-                'Ph-72','Ph-73', 'Ph-96', 'Ph-97', 'Ph-120', 'Ph-121', 'Ph-144',
-                'Ph-145', 'Ph-168']]
+    df_predict = df.copy()
+    df_predict = df_predict[:date_predict]
 
-    input_p = df_new[date_predict].copy()
-    pred = []
-    ph1 = np.zeros(25)
-    ph2 = np.zeros(25)
-    ph3 = np.zeros(25)
+    df_predict = df_predict.drop(['TRADEDATE', 'RTENERGY'], axis=1)
 
-    ph1[0] = input_p.iloc[0]['Ph-1']
-    ph2[0] = input_p.iloc[0]['Ph-2']
-    ph2[1] = input_p.iloc[1]['Ph-2']
-    ph3[0] = input_p.iloc[0]['Ph-3']
-    ph3[1] = input_p.iloc[1]['Ph-3']
-    ph3[2] = input_p.iloc[2]['Ph-3']
+    df_predict.hourofday = df_predict.hourofday.dt.seconds/3600
+    df_predict = df_predict[date_start:]
 
-    for x in range(24):
-        X_pred = input_p.iloc[x].values
-        X_pred[0]=ph1[x]
-        if x>1:
-            X_pred[1]=ph2[x]
-        if x>2:
-            X_pred[2]=ph3[x]
-        p = model.predict(X_pred.reshape(1,16,1))[0][0]
-        pred.append(p)
-        ph1[x+1]=p
-        ph2[x+1]=ph1[x]
-        ph3[x+1]=ph2[x]
+    y = df_predict.pop('DAENERGY').values
+    X = df_predict.values[:,1:]
+    X,y = data_lstm(X,y,168)
 
-    pred = np.array(pred)
+    input_p = X[-24:]
+    pred = model.predict(input_p)
+
     results = df[date_predict].copy()
     # pred_ada = model.predict(input_p.values)
     results['forecast'] = pred
-    RMSE = get_rmse(df[date_predict]['DAENERGY'], pred)
+    RMSE = get_rmse(results['DAENERGY'].values, pred)
     # print('RMSE for AdaBoost Model: ', RMSE)
     # #preparing to plot
     # #print('Ploting results')
+    return results, RMSE
+
+
+def plot_results(results,date_predict):
+    RMSE = get_rmse(results['DAENERGY'], results['forecast'])
     fig, ax = plt.subplots(figsize=(9,4))
     # npre = 24
     ax.set(title='DAENERGY '+ 'RMSE: {:.3f} for {}'.format(RMSE, date_predict), xlabel='Date', ylabel='Price DAENERGY')
     #
     # # Plot data points
-    df.loc[date_predict, 'DAENERGY'].plot(ax=ax, style='o', label='Observed')
+    results['DAENERGY'].plot(ax=ax, style='o', label='Observed')
     #
     # # Plot predictions
     results.forecast.plot(ax=ax, style='r--', label='forecast')
     # #ci = predict_ci.loc[date_predict]
     # #ax.fill_between(ci.index, ci.iloc[:,0], ci.iloc[:,1], color='r', alpha=0.1)
     legend = ax.legend(loc='lower right')
-
-    return results, RMSE
 
 
 def get_rmse(pred,real):
@@ -172,8 +157,16 @@ if __name__ == '__main__':
     #df.DAENERGY = scaler.transform(df.DAENERGY)
     df = clean_data(df)
     df = create_index(df)
+
+    list_scalers = dict()
+    for c in df.columns.values:
+        list_scalers[c] = MinMaxScaler()
+        list_scalers[c].fit(df[c].values.reshape(-1,1))
+        df[c] = list_scalers[c].transform(df[c].values.reshape(-1,1))
+    print('Training the model...')
     model, X, y = train_rnn(df,'2017-10-01',epochs=20)
-    #results , RMSE = predict_next_day(df,'2017-10-01', 'best_model.hdf5')
+    print('Predicting:')
+    results , RMSE = predict_next_day(df,'2017-10-01', 'best_model.hdf5')
     #y_true = scaler.inverse_transform(results.DAENERGY.values.reshape(1,-1))[0]
     #y_pred = scaler.inverse_transform(results.forecast.values.reshape(1,-1))[0]
     #print(MAPE(y_true, y_pred))
