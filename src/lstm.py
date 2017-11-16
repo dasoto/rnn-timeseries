@@ -49,7 +49,7 @@ def train_rnn(df,date_predict,epochs=100):
     sk.hourofday = sk.hourofday.dt.seconds/3600
     sk = sk[date_start:]
     y = sk.pop('DAENERGY').values
-    X = temp.values[:,1:]
+    X = sk.values[:,1:]
     X,y = data_lstm(X,y,168)
 
     model = create_rnn()
