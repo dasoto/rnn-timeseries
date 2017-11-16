@@ -45,6 +45,7 @@ def train_rnn(df,date_predict,epochs=100):
     date_limit = (date_p - datetime.timedelta(days=1)).strftime('%Y-%m-%d')
     date_start = (date_p - datetime.timedelta(days=42)).strftime('%Y-%m-%d')
     sk = df[:date_limit].copy()
+    print(sk.shape)
     sk = sk.drop(['TRADEDATE', 'RTENERGY'], axis=1)
     sk.hourofday = sk.hourofday.dt.seconds/3600
     sk = sk[date_start:]
