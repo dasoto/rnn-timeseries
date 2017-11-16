@@ -61,7 +61,7 @@ def train_rnn(df,date_predict,epochs=100):
     filepath="best_model_lstm.hdf5"
 
     checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
-    early_stop = EarlyStopping(monitor='val_loss', patience=100, verbose=1)
+    early_stop = EarlyStopping(monitor='val_loss', patience=10, verbose=1)
     # #Training Model
     model.fit(
         X,
@@ -85,7 +85,7 @@ def predict_next_day(df,date_predict, filename):
 
     df_predict = df_predict.drop(['TRADEDATE', 'RTENERGY'], axis=1)
 
-    df_predict.hourofday = df_predict.hourofday.dt.seconds/3600
+    #df_predict.hourofday = df_predict.hourofday.dt.seconds/3600
     df_predict = df_predict[date_start:]
 
     y = df_predict.pop('DAENERGY').values
@@ -149,7 +149,7 @@ def create_features(df):
 
 
 def MAPE(y_true, y_pred):
-    return 1/len(y_true)*(np.abs((y_true-y_pred))/y_true*100).sum()
+    return 1.0/len(y_true)*(np.abs((y_true-y_pred))/y_true*100).sum()
 
 if __name__ == '__main__':
     df = pivot_data('data/Data.txt')
@@ -164,9 +164,11 @@ if __name__ == '__main__':
         list_scalers[c].fit(df[c].values.reshape(-1,1))
         df[c] = list_scalers[c].transform(df[c].values.reshape(-1,1))
     print('Training the model...')
-    model, X, y = train_rnn(df,'2017-10-01',epochs=20)
+    model, X, y = train_rnn(df,'2017-10-01',epochs=1000)
     print('Predicting:')
-    results , RMSE = predict_next_day(df,'2017-10-01', 'best_model.hdf5')
+    results , RMSE = predict_next_day(df,'2017-10-01', 'best_model_lstm.hdf5')
+    y_pred = list_scalers['DAENERGY'].inverse_transform(results.forecast.values.reshape(-1,1))
+    y_true = list_scalers['DAENERGY'].inverse_transform(results.DAENERGY.values.reshape(-1,1))
     #y_true = scaler.inverse_transform(results.DAENERGY.values.reshape(1,-1))[0]
     #y_pred = scaler.inverse_transform(results.forecast.values.reshape(1,-1))[0]
-    #print(MAPE(y_true, y_pred))
+    print(MAPE(y_true, y_pred))
