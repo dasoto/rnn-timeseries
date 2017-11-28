@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-def pivot_data(filename):
+def pivot_data(filename, since_date='2017-07-05', to_date='2017-10-31'):
     df = pd.read_csv(filename, sep="\t")
     new_df = pd.pivot_table(df, index = ['TRADEDATE','HOUROFWEEK'],
                             columns='REGION')
@@ -14,8 +14,8 @@ def pivot_data(filename):
     mynew_df = mynew_df.reset_index()
     mynew_df.TRADEDATE = pd.to_datetime(mynew_df.TRADEDATE)
 
-    mynew_df = mynew_df[(mynew_df.TRADEDATE >= '2017-07-05')]
-    mynew_df = mynew_df[(mynew_df.TRADEDATE < '2017-10-31')]
+    mynew_df = mynew_df[(mynew_df.TRADEDATE >= since_date)]
+    mynew_df = mynew_df[(mynew_df.TRADEDATE < to_date)]
     mynew_df.sort_values(['TRADEDATE','HOUROFWEEK'], inplace=True)
     return mynew_df
 
