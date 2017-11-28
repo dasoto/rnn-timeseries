@@ -49,6 +49,31 @@ def clean_data(df):
     df.sort_values(['TRADEDATE','HOUROFWEEK'], inplace = True)
     return df
 
+def clean_data2(df):
+    i = df.shape[0]
+    toadd = pd.DataFrame(index=[i], columns= df.columns)
+    toadd2 = pd.DataFrame(index=[i+1], columns= df.columns)
+
+    # toadd5 = pd.DataFrame(index=[i+4], columns= df.columns)
+    # toadd6 = pd.DataFrame(index=[i+5], columns= df.columns)
+    # toadd7 = pd.DataFrame(index=[i+6], columns= df.columns)
+
+    for x in df.columns.values:
+        toadd[x] = df[(df.TRADEDATE=='2017-06-17')&(df.HOUROFWEEK==166)][x].values
+    toadd.HOUROFWEEK = 167
+    for x in df.columns.values:
+        toadd2[x] = df[(df.TRADEDATE=='2017-06-29')&(df.HOUROFWEEK==116)][x].values
+    toadd2.HOUROFWEEK = 117
+
+    df = pd.concat([df, toadd])
+    df = pd.concat([df, toadd2])
+
+    df = df.reset_index()
+    df.sort_values(['TRADEDATE','HOUROFWEEK'], inplace = True)
+    return df
+
+
+
 def create_index(df):
     df['hourofday'] = df.HOUROFWEEK.apply(lambda x:
                                           np.timedelta64(x%(24*(x//24)),'h')
